@@ -2,9 +2,12 @@ import {
   SAVE_KEY, GENERATORS, RELICS, CONTRACTS, createDefaultState, normalizeState,
   costForAmount, affordableAmount, buyGenerator, passiveRate, tapValue, registerTap,
   tick, claimContract, contractProgress, totalOwned, prestigeGain, ascend, relicCost,
-  buyRelic, activatePulse, cometReward, applyOfflineReward, dailyStatus, claimDaily, currentZone, updateAchievements
+  buyRelic, activatePulse, cometReward, applyOfflineReward, dailyStatus, claimDaily, currentZone, updateAchievements,
+  rewardedAdStatus, grantRewardedBoost, canShowInterstitial, markInterstitialShown
 } from './game.js';
 import { sfx } from './audio.js';
+import { showRewarded, showInterstitial, adProviderStatus } from './monetization.js';
+import { initTelemetry, setAnalyticsConsent, track, telemetrySummary, exportTelemetry, clearTelemetry } from './telemetry.js';
 
 const $ = (q, el = document) => el.querySelector(q);
 const $$ = (q, el = document) => [...el.querySelectorAll(q)];
@@ -18,10 +21,14 @@ let lastFrame = performance.now();
 let saveTimer = 0;
 let activeTab = 'forge';
 let offlineShown = false;
+let adPaused = false;
+let rewardedBusy = false;
 
 const initialOffline = applyOfflineReward(state);
 state = initialOffline.state;
 if (initialOffline.reward > 1) offlineShown = true;
+initTelemetry(state.settings.analytics);
+track('game_loaded', { version: state.version, offlineReward: Math.round(initialOffline.reward) });
 
 function save() {
   state.lastSeenAt = Date.now();
@@ -98,6 +105,28 @@ function renderGenerators() {
   }).join('');
 }
 
+function renderMonetization(now = Date.now()) {
+  const status = rewardedAdStatus(state, now);
+  const provider = adProviderStatus();
+  const activeSeconds = Math.ceil(status.boostMs / 1000);
+  const cooldownSeconds = Math.ceil(status.cooldownMs / 1000);
+  const btn = $('#rewarded-ad-btn');
+  if (!btn) return;
+  const unavailable = provider.provider === 'disabled' || !provider.configured;
+  btn.disabled = rewardedBusy || unavailable || !status.canWatch;
+  if (rewardedBusy) btn.textContent = 'LOADING…';
+  else if (unavailable) btn.textContent = 'ADS NOT CONFIGURED';
+  else if (status.remaining <= 0) btn.textContent = 'DAILY LIMIT REACHED';
+  else if (cooldownSeconds > 0) btn.textContent = `READY IN ${cooldownSeconds}s`;
+  else btn.textContent = provider.isMock ? 'TEST REWARDED AD' : 'WATCH AD';
+  $('#rewarded-title').textContent = activeSeconds > 0 ? `Sponsor boost active · ×2 for ${activeSeconds}s` : 'Watch an ad · ×2 Lumen output';
+  $('#rewarded-status').textContent = `${status.remaining}/${status.dailyLimit} rewards left today · 5 min each${provider.isMock ? ' · MOCK MODE' : ''}`;
+  const supportUrl = globalThis.LUMEN_CONFIG?.support?.url || '';
+  const support = $('#support-btn');
+  support.disabled = !supportUrl;
+  support.textContent = supportUrl ? 'SUPPORT' : 'NOT CONFIGURED';
+}
+
 function renderContracts() {
   const daily = dailyStatus(state);
   $('#daily-reward').innerHTML = `<div><small>DAILY SPARK</small><strong>${daily.canClaim ? `Day ${daily.nextStreak} cache is ready` : `Day ${state.dailyStreak} claimed`}</strong><span>${daily.canClaim ? `Return bonus: ${fmt(daily.reward)} ✦` : 'Come back tomorrow to extend the streak.'}</span></div><button id="daily-claim" ${daily.canClaim ? '' : 'disabled'}>${daily.canClaim ? 'CLAIM CACHE' : 'CLAIMED'}</button>`;
@@ -123,11 +152,11 @@ function renderRelics() {
     const level = state.relics[r.id] || 0;
     const cost = relicCost(state, r.id);
     return `<article class="relic-card"><div class="relic-icon">${r.icon}</div><div><strong>${r.name}</strong><p>${r.bonus}</p><small>Level ${level}</small></div>
-    <button data-relic="${r.id}" ${state.stardust < cost ? 'disabled' : ''}>UPGRADE<br><b>${cost} ✧</b></button></article>`;
+    <button data-relic="${r.id}" ${state.stardust < cost ? 'disabled' : ''}>UPGRADE<br><b>${cost} ✊</b></button></article>`;
   }).join('');
   const gain = prestigeGain(state);
   $('#ascend-btn').disabled = gain <= 0;
-  $('#ascend-btn').innerHTML = gain > 0 ? `REIGNITE <b>+${gain} ✧</b>` : `REIGNITE <b>needs 500K lifetime ✦</b>`;
+  $('#ascend-btn').innerHTML = gain > 0 ? `REIGNITE <b>+${gain} ✪</b>` : `REIGNITE <b>needs 500K lifetime ✦</b>`;
   $('#ascend-copy').textContent = `Reset this run to gain Stardust. Total Stardust permanently boosts all production by +20% each. Current possible gain: ${gain}.`;
 }
 
@@ -168,7 +197,7 @@ function renderHUD(now = Date.now()) {
 }
 
 function renderAll() {
-  renderHUD(); renderGenerators(); renderContracts(); renderRelics(); renderOrbit();
+  renderHUD(); renderGenerators(); renderContracts(); renderRelics(); renderOrbit(); renderMonetization();
   $$('.tab-panel').forEach(p => p.classList.toggle('active', p.dataset.panel === activeTab));
   $('.buy-modes').classList.toggle('hidden', activeTab !== 'forge');
   $$('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === activeTab));
@@ -179,22 +208,22 @@ function bindDelegates() {
     const buy = e.target.closest('[data-buy]');
     if (buy) {
       const result = buyGenerator(state, buy.dataset.buy, state.buyMode);
-      if (result.bought) { state = result.state; sfx('buy', state.settings.sound); haptic(); toast(`Built ×${result.bought}`); renderAll(); save(); }
+      if (result.bought) { state = result.state; track('generator_purchase', { generator: buy.dataset.buy, amount: result.bought, spent: Math.round(result.spent) }); sfx('buy', state.settings.sound); haptic(); toast(`Built ×${result.bought}`); renderAll(); save(); }
     }
     const claim = e.target.closest('[data-claim]');
     if (claim) {
       const result = claimContract(state, claim.dataset.claim);
-      if (result.reward) { state = result.state; sfx('claim', state.settings.sound); toast(`Contract +${fmt(result.reward)} ✦`, 'good'); renderAll(); save(); }
+      if (result.reward) { state = result.state; track('contract_claim', { contract: claim.dataset.claim, reward: Math.round(result.reward) }); sfx('claim', state.settings.sound); toast(`Contract +${fmt(result.reward)} ✦`, 'good'); renderAll(); save(); }
     }
     const relic = e.target.closest('[data-relic]');
     if (relic) {
       const result = buyRelic(state, relic.dataset.relic);
-      if (result.bought) { state = result.state; sfx('buy', state.settings.sound); toast('Relic upgraded', 'good'); renderAll(); save(); }
+      if (result.bought) { state = result.state; track('relic_upgrade', { relic: relic.dataset.relic, cost: result.cost }); sfx('buy', state.settings.sound); toast('Relic upgraded', 'good'); renderAll(); save(); }
     }
     const daily = e.target.closest('#daily-claim');
     if (daily) {
       const result = claimDaily(state);
-      if (result.reward) { state = result.state; sfx('claim', state.settings.sound); toast(`Daily ×${result.streak} +${fmt(result.reward)} ✦`, 'good'); renderAll(); save(); }
+      if (result.reward) { state = result.state; track('daily_claim', { streak: result.streak, reward: Math.round(result.reward) }); sfx('claim', state.settings.sound); toast(`Daily ×${result.streak} +${fmt(result.reward)} ✦`, 'good'); renderAll(); save(); }
     }
     const nav = e.target.closest('[data-tab]');
     if (nav) { activeTab = nav.dataset.tab; renderAll(); }
@@ -213,6 +242,7 @@ $('#core-button').addEventListener('pointerdown', (e) => {
   const y = e.clientY || r.top + r.height/2;
   const result = registerTap(state);
   state = result.state;
+  if ([1,100,1000,10000].includes(state.taps)) track('tap_milestone', { taps: state.taps, bestCombo: state.bestCombo });
   sfx('tap', state.settings.sound); haptic(5); burst(x, y); floatNumber(x, y, result.value);
   e.currentTarget.classList.remove('pop'); void e.currentTarget.offsetWidth; e.currentTarget.classList.add('pop');
   renderHUD();
@@ -220,18 +250,42 @@ $('#core-button').addEventListener('pointerdown', (e) => {
 
 $('#pulse-btn').addEventListener('click', () => {
   const result = activatePulse(state);
-  if (result.activated) { state = result.state; sfx('pulse', state.settings.sound); haptic(18); toast('Production ×4!', 'good'); renderAll(); save(); }
+  if (result.activated) { state = result.state; track('pulse_activate'); sfx('pulse', state.settings.sound); haptic(18); toast('Production ×4!', 'good'); renderAll(); save(); }
 });
 
 $('#comet').addEventListener('click', () => {
-  const result = cometReward(state); state = result.state; sfx('comet', state.settings.sound); haptic([12,35,12]); toast(`Comet cache +${fmt(result.reward)} ✦`, 'good'); renderAll(); save();
+  const result = cometReward(state); state = result.state; track('comet_claim', { reward: Math.round(result.reward) }); sfx('comet', state.settings.sound); haptic([12,35,12]); toast(`Comet cache +${fmt(result.reward)} ✦`, 'good'); renderAll(); save();
 });
 
-$('#ascend-btn').addEventListener('click', () => {
+$('#ascend-btn').addEventListener('click', async () => {
   const gain = prestigeGain(state);
   if (!gain) return;
   if (!confirm(`Reignite this pocket star? This run resets and grants ${gain} Stardust.`)) return;
-  const result = ascend(state); state = result.state; sfx('ascend', state.settings.sound); haptic(30); toast(`Reignited +${gain} ✧`, 'good'); activeTab='forge'; renderAll(); save();
+  const result = ascend(state); state = result.state; track('prestige', { gain, ascensions: state.ascensions }); sfx('ascend', state.settings.sound); haptic(30); toast(`Reignited +${gain} ✧`, 'good'); activeTab='forge'; renderAll(); save();
+  if (canShowInterstitial(state)) {
+    const ad = await showInterstitial({ placement: 'after_reignite', beforeAd: () => { adPaused = true; }, afterAd: () => { adPaused = false; lastFrame = performance.now(); } });
+    if (ad.shown) { state = markInterstitialShown(state); save(); }
+  }
+});
+
+$('#rewarded-ad-btn').addEventListener('click', async () => {
+  if (rewardedBusy) return;
+  const status = rewardedAdStatus(state);
+  if (!status.canWatch) return;
+  rewardedBusy = true; renderMonetization(); track('rewarded_offer_accept', { remaining: status.remaining });
+  const ad = await showRewarded({ placement: 'production_boost', beforeAd: () => { adPaused = true; }, afterAd: () => { adPaused = false; lastFrame = performance.now(); } });
+  rewardedBusy = false;
+  if (ad.granted) {
+    const reward = grantRewardedBoost(state);
+    if (reward.granted) { state = reward.state; track('rewarded_boost_granted', { seconds: Math.round(reward.boostAddedMs / 1000) }); toast('Sponsor boost ×2 for 5 minutes!', 'good'); save(); }
+  } else toast(ad.reason === 'dismissed' ? 'Ad closed — no boost granted.' : 'No ad available right now.');
+  renderAll(); refreshTelemetrySummary();
+});
+
+$('#support-btn').addEventListener('click', () => {
+  const url = globalThis.LUMEN_CONFIG?.support?.url;
+  if (!url) return;
+  track('support_link_open'); window.open(url, '_blank', 'noopener,noreferrer');
 });
 
 $('#settings-btn').addEventListener('click', () => $('#settings').showModal());
@@ -240,6 +294,15 @@ $('#settings-close').addEventListener('click', () => $('#settings').close());
   const input = $(`#setting-${key}`); input.checked = state.settings[key];
   input.addEventListener('change', () => { state.settings[key] = input.checked; save(); });
 });
+const analyticsInput = $('#setting-analytics'); analyticsInput.checked = Boolean(state.settings.analytics);
+analyticsInput.addEventListener('change', () => { state.settings.analytics = analyticsInput.checked; setAnalyticsConsent(analyticsInput.checked); save(); refreshTelemetrySummary(); });
+function refreshTelemetrySummary() { const sum = telemetrySummary(); $('#telemetry-summary').textContent = `${sum.events} activity events stored locally`; }
+function downloadSave() { const url = URL.createObjectURL(new Blob([JSON.stringify(state, null, 2)], {type:'application/json'})); const a=document.createElement('a'); a.href=url; a.download=`lumen-loop-save-${new Date().toISOString().slice(0,10)}.json`; a.click(); setTimeout(()=>URL.revokeObjectURL(url),1000); }
+$('#export-events-json').addEventListener('click', () => exportTelemetry('json'));
+$('#export-events-csv').addEventListener('click', () => exportTelemetry('csv'));
+$('#export-save').addEventListener('click', downloadSave);
+$('#clear-events').addEventListener('click', () => { clearTelemetry(); track('activity_log_cleared'); refreshTelemetrySummary(); });
+refreshTelemetrySummary();
 $('#reset-save').addEventListener('click', () => {
   if (confirm('Erase this local save and start from zero?')) { localStorage.removeItem(SAVE_KEY); location.reload(); }
 });
@@ -250,6 +313,7 @@ renderAll();
 if (offlineShown) setTimeout(() => toast(`Welcome back! +${fmt(initialOffline.reward)} ✦ offline`, 'good'), 350);
 
 function frame(nowPerf) {
+  if (adPaused) { lastFrame = nowPerf; requestAnimationFrame(frame); return; }
   const dt = Math.min(0.25, (nowPerf - lastFrame) / 1000);
   lastFrame = nowPerf;
   const result = tick(state, dt); state = updateAchievements(result.state);
@@ -260,13 +324,13 @@ function frame(nowPerf) {
 }
 requestAnimationFrame(frame);
 
-setInterval(() => { renderGenerators(); renderContracts(); renderRelics(); renderOrbit(); }, 1000);
+setInterval(() => { renderGenerators(); renderContracts(); renderRelics(); renderOrbit(); renderMonetization(); refreshTelemetrySummary(); }, 1000);
 window.addEventListener('pagehide', save);
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) { save(); return; }
   const resumed = applyOfflineReward(state);
   state = resumed.state;
-  if (resumed.reward > 1) toast(`Welcome back! +${fmt(resumed.reward)} ✦`, 'good');
+  if (resumed.reward > 1) { toast(`Welcome back! +${fmt(resumed.reward)} ✦`, 'good'); track('offline_reward', { reward: Math.round(resumed.reward) }); }
   renderAll();
 });
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('./service-worker.js').catch(() => {});

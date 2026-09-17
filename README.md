@@ -33,3 +33,14 @@ npm run smoke
 - economy tests and two documented review cycles
 
 See `docs/benchmark-analysis.md`, `docs/design.md`, `docs/review-cycle-1.md`, `docs/review-cycle-2.md`.
+
+## Monetization & records
+- AdSense H5 Games / Ad Placement API adapter for web
+- Android WebView AdMob slot bridge through the same H5 API
+- opt-in rewarded x2 boost with daily/frequency caps
+- natural-break interstitial hook after Reignite
+- local bounded analytics log with CSV/JSON export
+- optional GA4 after player opt-in
+- optional external supporter link
+
+Production credentials live in `config.js`; it ships in `mock` mode so development never generates real ad traffic. See `docs/monetization.md`.

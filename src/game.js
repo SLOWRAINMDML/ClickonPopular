@@ -1,5 +1,10 @@
-export const VERSION = 1;
+export const VERSION = 2;
 export const SAVE_KEY = 'lumen-loop-save-v1';
+export const REWARDED_DAILY_LIMIT = 4;
+export const REWARDED_COOLDOWN_MS = 60_000;
+export const REWARDED_BOOST_MS = 5 * 60_000;
+export const REWARDED_BOOST_MAX_MS = 15 * 60_000;
+export const INTERSTITIAL_COOLDOWN_MS = 15 * 60_000;
 
 export const GENERATORS = [
   { id: 'sparkDrone', name: 'Spark Drone', icon: '✦', baseCost: 15, baseRate: 0.5, blurb: 'Tiny drones skim loose photons from the core.' },
@@ -55,7 +60,15 @@ export function createDefaultState(now = Date.now()) {
     pulseReadyAt: now + 20000,
     cometReadyAt: now + 18000,
     lastSeenAt: now,
-    settings: { sound: true, motion: true, haptics: true },
+    settings: { sound: true, motion: true, haptics: true, analytics: false },
+    monetization: {
+      rewardedBoostUntil: 0,
+      rewardedAdsDate: null,
+      rewardedAdsToday: 0,
+      lastRewardedAt: 0,
+      lastInterstitialAt: now,
+      interstitialsShown: 0
+    },
     achievements: [],
     dailyClaimDate: null,
     dailyStreak: 0
@@ -69,6 +82,7 @@ export function normalizeState(raw, now = Date.now()) {
   state.generators = { ...base.generators, ...(raw.generators || {}) };
   state.relics = { ...base.relics, ...(raw.relics || {}) };
   state.settings = { ...base.settings, ...(raw.settings || {}) };
+  state.monetization = { ...base.monetization, ...(raw.monetization || {}) };
   state.claimedContracts = Array.isArray(raw.claimedContracts) ? raw.claimedContracts : [];
   state.achievements = Array.isArray(raw.achievements) ? raw.achievements : [];
   return state;
@@ -123,17 +137,21 @@ export function pulseMultiplier(state, now = Date.now()) {
   return state.pulseUntil > now ? 4 : 1;
 }
 
+export function adBoostMultiplier(state, now = Date.now()) {
+  return (state.monetization?.rewardedBoostUntil || 0) > now ? 2 : 1;
+}
+
 export function passiveRate(state, now = Date.now()) {
   const base = GENERATORS.reduce((sum, g) => {
     const owned = state.generators[g.id] || 0;
     return sum + owned * g.baseRate * milestoneMultiplier(owned);
   }, 0);
-  return base * prestigeMultiplier(state) * relicMultiplier(state, 'passive') * pulseMultiplier(state, now);
+  return base * prestigeMultiplier(state) * relicMultiplier(state, 'passive') * pulseMultiplier(state, now) * adBoostMultiplier(state, now);
 }
 
 export function tapValue(state, now = Date.now()) {
   const combo = Math.max(1, Math.min(5, state.combo || 1));
-  return prestigeMultiplier(state) * relicMultiplier(state, 'tap') * combo * pulseMultiplier(state, now);
+  return prestigeMultiplier(state) * relicMultiplier(state, 'tap') * combo * pulseMultiplier(state, now) * adBoostMultiplier(state, now);
 }
 
 export function registerTap(state, now = Date.now()) {
@@ -222,6 +240,7 @@ export function ascend(state, now = Date.now()) {
   fresh.ascensions = (state.ascensions || 0) + 1;
   fresh.relics = { ...state.relics };
   fresh.settings = { ...state.settings };
+  fresh.monetization = { ...fresh.monetization, ...state.monetization };
   fresh.achievements = [...new Set([...(state.achievements || []), 'ascend'])];
   fresh.totalLumensAllTime = state.totalLumensAllTime || 0;
   return { state: fresh, gain };
@@ -262,7 +281,7 @@ export function cometReward(state, now = Date.now()) {
 
 export function offlineReward(state, now = Date.now()) {
   const elapsed = Math.max(0, Math.min(8 * 3600, (now - (state.lastSeenAt ?? now)) / 1000));
-  const rate = passiveRate({ ...state, pulseUntil: 0 }, now);
+  const rate = passiveRate({ ...state, pulseUntil: 0, monetization: { ...state.monetization, rewardedBoostUntil: 0 } }, now);
   return rate * elapsed * relicMultiplier(state, 'offline');
 }
 
@@ -309,6 +328,60 @@ export function claimDaily(state, now = Date.now()) {
   next.lifetimeLumens += status.reward;
   next.totalLumensAllTime += status.reward;
   return { state: next, reward: status.reward, streak: status.nextStreak };
+}
+
+
+export function rewardedAdStatus(state, now = Date.now()) {
+  const today = localDayKey(now);
+  const monetization = state.monetization || {};
+  const used = monetization.rewardedAdsDate === today ? (monetization.rewardedAdsToday || 0) : 0;
+  const cooldownMs = Math.max(0, (monetization.lastRewardedAt || 0) + REWARDED_COOLDOWN_MS - now);
+  const boostMs = Math.max(0, (monetization.rewardedBoostUntil || 0) - now);
+  return {
+    canWatch: used < REWARDED_DAILY_LIMIT && cooldownMs <= 0,
+    used,
+    remaining: Math.max(0, REWARDED_DAILY_LIMIT - used),
+    cooldownMs,
+    boostMs,
+    dailyLimit: REWARDED_DAILY_LIMIT
+  };
+}
+
+export function grantRewardedBoost(state, now = Date.now()) {
+  const status = rewardedAdStatus(state, now);
+  if (!status.canWatch) return { state, granted: false, status };
+  const today = localDayKey(now);
+  const currentUntil = Math.max(now, state.monetization?.rewardedBoostUntil || 0);
+  const rewardedBoostUntil = Math.min(now + REWARDED_BOOST_MAX_MS, currentUntil + REWARDED_BOOST_MS);
+  const next = {
+    ...state,
+    monetization: {
+      ...state.monetization,
+      rewardedBoostUntil,
+      rewardedAdsDate: today,
+      rewardedAdsToday: status.used + 1,
+      lastRewardedAt: now
+    }
+  };
+  return { state: next, granted: true, status: rewardedAdStatus(next, now), boostAddedMs: rewardedBoostUntil - currentUntil };
+}
+
+export function canShowInterstitial(state, now = Date.now()) {
+  const m = state.monetization || {};
+  const sinceInterstitial = now - (m.lastInterstitialAt || 0);
+  const sinceRewarded = now - (m.lastRewardedAt || 0);
+  return sinceInterstitial >= INTERSTITIAL_COOLDOWN_MS && sinceRewarded >= 2 * 60_000;
+}
+
+export function markInterstitialShown(state, now = Date.now()) {
+  return {
+    ...state,
+    monetization: {
+      ...state.monetization,
+      lastInterstitialAt: now,
+      interstitialsShown: (state.monetization?.interstitialsShown || 0) + 1
+    }
+  };
 }
 
 export function currentZone(state) {

@@ -8,6 +8,8 @@
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./assets/icon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="./styles.css" />
+  <link rel="stylesheet" href="./monetization.css" />
+  <script src="./config.js"></script>
   <title>Lumen Loop</title>
 </head>
 <body class="zone-dawn">
@@ -45,7 +47,13 @@
           <span class="desktop-label">STAR FACTORY</span>
         </div>
         <div class="tab-panel active" data-panel="forge"><div id="generator-list" class="list"></div></div>
-        <div class="tab-panel" data-panel="contracts"><div class="section-title"><div><small>SHORT GOALS</small><h2>Contracts</h2></div><p>Claim bursts of currency while the long loop keeps running.</p></div><article id="daily-reward" class="daily-card"></article><div id="contract-list" class="list"></div><div class="achievement-wrap"><small>ACHIEVEMENTS</small><div id="achievement-list" class="achievement-list"></div></div></div>
+        <div class="tab-panel" data-panel="contracts"><div class="section-title"><div><small>SHORT GOALS</small><h2>Contracts</h2></div><p>Claim bursts of currency while the long loop keeps running.</p></div>
+          <article class="sponsor-card">
+            <div class="sponsor-copy"><small>OPTIONAL SPONSOR BOOST</small><strong id="rewarded-title">Watch an ad · ×2 Lumen output</strong><span id="rewarded-status">5 minute boost · voluntary · no reward without completion</span></div>
+            <button id="rewarded-ad-btn">WATCH AD</button>
+          </article>
+          <article id="support-card" class="support-card"><div><small>SUPPORT THE GAME</small><strong>Keep Lumen Loop independent</strong><span>Optional external supporter link. No gameplay purchase is required.</span></div><button id="support-btn" disabled>NOT CONFIGURED</button></article>
+          <article id="daily-reward" class="daily-card"></article><div id="contract-list" class="list"></div><div class="achievement-wrap"><small>ACHIEVEMENTS</small><div id="achievement-list" class="achievement-list"></div></div></div>
         <div class="tab-panel" data-panel="relics"><div class="section-title"><div><small>PERMANENT POWER</small><h2>Relics</h2></div><p>Spend Stardust without losing the all-time prestige bonus.</p></div><div id="relic-list" class="list"></div><article class="ascend-card"><div><small>PRESTIGE LOOP</small><h3>Reignite the Pocket Star</h3><p id="ascend-copy"></p></div><button id="ascend-btn" disabled>REIGNITE</button></article></div>
       </section>
     </section>
@@ -62,7 +70,9 @@
     <label><span>Sound effects</span><input id="setting-sound" type="checkbox" /></label>
     <label><span>Motion effects</span><input id="setting-motion" type="checkbox" /></label>
     <label><span>Haptics</span><input id="setting-haptics" type="checkbox" /></label>
-    <p>Your progress is stored only in this browser.</p>
+    <label><span>Anonymous remote analytics</span><input id="setting-analytics" type="checkbox" /></label>
+    <div class="data-box"><small>LOCAL RECORDS</small><strong id="telemetry-summary">0 activity events stored</strong><p>Progress and a bounded activity log stay on this device. Remote analytics is off by default and only loads after opt-in.</p><div class="data-actions"><button id="export-events-json">EVENTS JSON</button><button id="export-events-csv">EVENTS CSV</button><button id="export-save">SAVE JSON</button></div></div>
+    <button id="clear-events" class="secondary-btn">Clear activity log</button>
     <button id="reset-save" class="danger-btn">Erase local save</button>
   </dialog>
   <script type="module" src="./src/app.js"></script>
