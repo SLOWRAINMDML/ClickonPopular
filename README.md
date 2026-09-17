@@ -26,13 +26,15 @@ npm run smoke
 - five permanent relic upgrade paths
 - offline earnings (8h cap)
 - local save + settings
-- responsive mobile UI / safe areas
+- fixed one-hand mobile cockpit / safe areas (no document scroll)
+- visible next-goal progress cue + ready-action nav badges
+- Reignite momentum: stronger meta multiplier, legacy bankroll, ready Pulse, early comet
 - procedural sound + optional haptics
 - PWA manifest and offline cache
 - original SVG game icon/core asset
-- economy tests and two documented review cycles
+- economy tests and three documented review cycles
 
-See `docs/benchmark-analysis.md`, `docs/design.md`, `docs/review-cycle-1.md`, `docs/review-cycle-2.md`.
+See `docs/benchmark-analysis.md`, `docs/design.md`, `docs/mobile-retention-redesign.md`, `docs/review-cycle-1.md`, `docs/review-cycle-2.md`, `docs/review-cycle-3.md`.
 
 ## Monetization & records
 - AdSense H5 Games / Ad Placement API adapter for web

@@ -120,7 +120,7 @@ export function milestoneMultiplier(owned) {
 }
 
 export function prestigeMultiplier(state) {
-  return 1 + (state.totalStardust || 0) * 0.2;
+  return 1 + (state.totalStardust || 0) * 0.35;
 }
 
 export function relicMultiplier(state, kind) {
@@ -238,6 +238,11 @@ export function ascend(state, now = Date.now()) {
   fresh.stardust = (state.stardust || 0) + gain;
   fresh.totalStardust = (state.totalStardust || 0) + gain;
   fresh.ascensions = (state.ascensions || 0) + 1;
+  // Meta-progression should make the repeated opening materially faster, not merely replay it.
+  // A small legacy bankroll buys immediate automation; Pulse is ready at once and the first comet arrives quickly.
+  fresh.lumens = Math.min(150, fresh.ascensions * 15);
+  fresh.pulseReadyAt = now;
+  fresh.cometReadyAt = now + 6000;
   fresh.relics = { ...state.relics };
   fresh.settings = { ...state.settings };
   fresh.monetization = { ...fresh.monetization, ...state.monetization };

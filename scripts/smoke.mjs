@@ -6,4 +6,9 @@ if(!html.includes('viewport-fit=cover')) throw new Error('mobile viewport safe a
 if(!html.includes('bottom-nav')) throw new Error('mobile navigation missing');
 if(!html.includes('rewarded-ad-btn')) throw new Error('rewarded monetization UI missing');
 if(!html.includes('setting-analytics')) throw new Error('analytics controls missing');
-console.log(`Smoke OK: ${refs.length} local references checked; mobile viewport + nav present.`);
+
+const css=(await readFile(new URL('../styles.css',import.meta.url),'utf8'))+(await readFile(new URL('../mobile-v3.css',import.meta.url),'utf8'));
+if(!html.includes('goal-mini')) throw new Error('visible next-goal cue missing');
+if(!css.includes('height:100dvh') || !css.includes('overflow:hidden')) throw new Error('mobile fixed-cockpit contract missing');
+if(!css.includes('.tab-panel.active') || !css.includes('overflow-y:auto')) throw new Error('scroll must be isolated to lower tray');
+console.log(`Smoke OK: ${refs.length} local references checked; fixed mobile cockpit + goal cue + tray scrolling present.`);

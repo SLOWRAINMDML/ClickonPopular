@@ -1,0 +1,50 @@
+/* v3: progression cue + mobile cockpit. Core play stays visible; only the lower tray scrolls. */
+.goal-mini{min-width:230px;max-width:360px;display:grid;gap:5px;justify-self:end}.goal-mini span{font-size:8px;line-height:1.2;letter-spacing:.09em;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right}.goal-mini i{display:block;height:4px;border-radius:999px;background:rgba(255,255,255,.07);overflow:hidden}.goal-mini i b{display:block;height:100%;width:3%;border-radius:inherit;background:linear-gradient(90deg,var(--hot2),var(--hot));box-shadow:0 0 10px rgba(255,198,109,.35);transition:width .25s ease}
+
+@media (max-width:820px){
+  html,body{height:100%;min-height:100%;overflow:hidden;touch-action:manipulation}
+  body{height:100dvh;min-height:100dvh}
+  .app-shell{height:100dvh;width:100%;padding:max(6px,env(safe-area-inset-top)) 8px max(6px,env(safe-area-inset-bottom));display:grid;grid-template-rows:52px minmax(0,1fr) 58px;gap:7px;overflow:hidden}
+  .topbar{height:52px;margin:0;display:grid;grid-template-columns:36px minmax(0,1fr) 38px;gap:6px;align-items:center}
+  .brand{width:36px;min-width:36px;gap:0}.brand img{width:34px;height:34px}.brand div{display:none}
+  .stats{grid-column:auto;grid-row:auto;display:grid;grid-template-columns:1fr 1fr;gap:6px;min-width:0}
+  .stats>div{min-width:0;height:42px;padding:5px 7px;border-radius:12px;grid-template-columns:auto minmax(0,1fr);column-gap:5px;align-content:center}
+  .stats span{font-size:16px}.stats b{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.stats small{font-size:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .topbar>.icon-btn{grid-column:auto;grid-row:auto;width:38px;height:38px;border-radius:12px}
+  .game-grid{height:100%;min-height:0;display:grid;grid-template-columns:1fr;grid-template-rows:minmax(270px,42%) minmax(0,1fr);gap:7px;overflow:hidden}
+  .hero-panel,.content-panel{height:100%;min-height:0;border-radius:20px}
+  .hero-panel{padding:8px 10px;display:grid;grid-template-rows:18px minmax(0,1fr) 22px 20px 36px;gap:4px;align-items:center;overflow:hidden}
+  .hero-meta{font-size:8px;line-height:18px;letter-spacing:.06em}.hero-meta span:last-child{max-width:46%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
+  .core-stage{height:auto;min-height:0;width:100%}.orbit-a{width:190px;height:190px}.orbit-b{width:148px;height:148px}#orbiters i{width:8px;height:8px;transform:rotate(var(--angle)) translateX(94px) rotate(calc(-1 * var(--angle)))}
+  .core-button{width:138px;height:138px}.core-button img{filter:drop-shadow(0 12px 25px rgba(255,140,110,.28))}
+  .comet{right:0;top:5%;padding:6px 9px}.comet span{font-size:18px}.comet b{font-size:7px}
+  .tap-readout{margin:0;line-height:1}.tap-readout strong{font-size:14px}.tap-readout span{display:none}
+  .combo-row{width:100%;margin:0;grid-template-columns:76px 1fr;gap:7px;font-size:9px}.combo-track{height:6px}
+  .pulse-btn{width:100%;height:36px;margin:0;padding:7px 10px;border-radius:12px;font-size:11px}.hero-hint{display:none}
+  .content-panel{padding:7px;max-height:none!important;overflow:hidden!important;display:flex;flex-direction:column}
+  .content-panel::-webkit-scrollbar{display:none}.tabs-head{position:static;top:auto;height:36px;min-height:36px;margin:0 0 5px;padding:0;display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px;align-items:center;background:none;flex:0 0 auto}
+  .buy-modes{height:34px;padding:3px;border-radius:10px}.mode-btn{min-width:36px;height:28px;padding:4px 8px;font-size:9px}.buy-modes.hidden{display:none}.buy-modes.hidden+.goal-mini{grid-column:1/-1}
+  .goal-mini{min-width:0;max-width:none;width:100%;display:grid;gap:4px}.goal-mini span{text-align:right;font-size:7px;letter-spacing:.06em}.goal-mini i{height:4px}
+  .tab-panel{display:none;min-height:0;height:100%;overflow:hidden}.tab-panel.active{display:flex;flex-direction:column;min-height:0;height:100%;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:0 1px 5px}.tab-panel.active::-webkit-scrollbar{display:none}
+  .list{gap:6px}
+  .generator-card{grid-template-columns:38px minmax(0,1fr) 92px;gap:7px;min-height:58px;padding:7px 8px;border-radius:14px}
+  .generator-card:hover,.relic-card:hover{transform:none}.generator-icon{width:38px;height:38px;border-radius:11px;font-size:20px}.generator-title{gap:5px}.generator-title strong{font-size:11px}.generator-title span{font-size:7px;padding:2px 5px}.generator-copy p{display:none}.generator-copy small{display:block;max-width:100%;font-size:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .buy-btn{grid-column:auto!important;width:92px!important;min-width:92px;height:44px;padding:6px 5px;border-radius:11px;display:grid!important;place-items:center!important;line-height:1.05}.buy-btn span{font-size:7px}.buy-btn b{font-size:9px;margin-top:1px}
+  .section-title{padding:2px 2px 7px;align-items:center}.section-title small{font-size:7px}.section-title h2{font-size:16px;margin:0}.section-title p{display:none}
+  .sponsor-card{grid-template-columns:minmax(0,1fr) 96px!important;gap:8px;padding:9px;margin-bottom:6px;border-radius:14px}.sponsor-card strong{font-size:10px}.sponsor-card span{font-size:8px}.sponsor-card small{font-size:7px}.sponsor-card button{width:96px!important;min-width:96px!important;padding:8px 5px;font-size:7px}
+  .support-card{display:none!important}
+  .daily-card{grid-template-columns:minmax(0,1fr) 96px!important;gap:8px;padding:9px;margin-bottom:6px;border-radius:14px}.daily-card small{font-size:7px}.daily-card strong{font-size:10px}.daily-card span{font-size:8px}.daily-card button{width:96px!important;padding:8px 5px;font-size:7px}
+  .contract-card{grid-template-columns:minmax(0,1fr) 98px!important;gap:5px 8px;padding:9px;border-radius:13px}.contract-card button{grid-column:2!important;grid-row:1/3!important;width:98px!important;min-width:98px;padding:8px 5px;font-size:7px}.contract-card strong{font-size:10px}.contract-card span{font-size:8px}.contract-card small{font-size:7px}.contract-card .progress{height:5px}
+  .achievement-wrap{margin-top:8px;padding-top:8px;border-top:1px solid var(--line)}.achievement-list{grid-template-columns:repeat(2,1fr);gap:5px;margin-top:5px}.achievement{padding:7px 6px;border-radius:11px}.achievement b{font-size:8px}.achievement small{font-size:6px}
+  #relic-list.list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.relic-card{min-width:0;grid-template-columns:32px minmax(0,1fr);gap:6px;padding:8px;border-radius:13px}.relic-icon{width:32px;height:32px;border-radius:10px;font-size:17px}.relic-card strong{font-size:9px}.relic-card p{display:none}.relic-card small{font-size:7px}.relic-card button{grid-column:1/-1!important;width:100%!important;min-width:0;padding:7px 5px;font-size:7px}.relic-card button b{font-size:8px}
+  .ascend-card{grid-template-columns:minmax(0,1fr) 108px!important;gap:8px;margin-top:6px;padding:9px;border-radius:14px}.ascend-card h3{font-size:12px}.ascend-card p{font-size:7px;line-height:1.35;margin:3px 0}.ascend-card button{width:108px!important;min-width:108px!important;padding:9px 6px;font-size:8px}
+  .bottom-nav{position:static!important;left:auto;right:auto;bottom:auto;height:58px;margin:0;padding:4px;display:grid;grid-template-columns:repeat(3,1fr);border-radius:17px;align-self:end}
+  .nav-btn{min-height:48px;padding:5px 3px 4px;border-radius:13px;font-size:7px;gap:2px}.nav-btn span{font-size:15px}
+  #toasts{top:58px;right:8px;left:8px;justify-items:end}.toast{max-width:min(320px,92vw);font-size:9px;padding:8px 10px}
+  .settings-dialog{width:100%;max-width:none;max-height:84dvh;margin:auto 0 0;border-radius:24px 24px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom))}
+}
+@media (max-width:820px) and (max-height:760px){.app-shell{grid-template-rows:46px minmax(0,1fr) 54px;gap:5px}.topbar{height:46px}.stats>div{height:38px}.topbar>.icon-btn{height:36px}.game-grid{grid-template-rows:minmax(240px,40%) minmax(0,1fr);gap:5px}.hero-panel{grid-template-rows:16px minmax(0,1fr) 19px 18px 32px;padding:6px 8px;gap:3px}.orbit-a{width:166px;height:166px}.orbit-b{width:132px;height:132px}#orbiters i{transform:rotate(var(--angle)) translateX(82px) rotate(calc(-1 * var(--angle)))}.core-button{width:120px;height:120px}.pulse-btn{height:32px}.bottom-nav{height:54px}.nav-btn{min-height:44px}}
+@media (max-width:820px){.tabs-head{height:42px;min-height:42px}.buy-modes{height:40px}.mode-btn{min-width:40px;height:34px;padding:4px 8px}.goal-mini span{font-size:8px}.sponsor-card button,.daily-card button,.contract-card button,.relic-card button{min-height:40px}.nav-btn{position:relative}.nav-btn[data-badge]::after{content:attr(data-badge);position:absolute;top:4px;left:calc(50% + 10px);min-width:15px;height:15px;padding:0 4px;display:grid;place-items:center;border-radius:999px;background:var(--hot2);color:white;font-size:7px;font-weight:800;box-shadow:0 0 12px rgba(255,122,168,.38)}}
+#orbiters i.orbiter-machine{width:18px;height:18px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.22);background:linear-gradient(145deg,rgba(255,198,109,.28),rgba(140,229,255,.15));font-size:9px;color:#fff3bc;border-radius:6px;box-shadow:0 0 14px rgba(255,198,109,.3)}
+@media (max-width:820px){#orbiters i.orbiter-machine{width:16px;height:16px;border-radius:5px;font-size:8px}}
+@media (max-width:820px){.sponsor-card{grid-template-columns:minmax(0,1fr) 96px}.sponsor-card button{width:96px;min-width:96px}.support-card{display:none}.settings-dialog{width:100%;max-width:none;max-height:84dvh;margin:auto 0 0;overflow:auto}.data-actions{grid-template-columns:repeat(3,1fr)}.data-actions button{font-size:7px;padding:8px 4px}}

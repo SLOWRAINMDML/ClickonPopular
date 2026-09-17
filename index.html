@@ -9,6 +9,7 @@
   <link rel="icon" href="./assets/icon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="./styles.css" />
   <link rel="stylesheet" href="./monetization.css" />
+  <link rel="stylesheet" href="./mobile-v3.css" />
   <script src="./config.js"></script>
   <title>Lumen Loop</title>
 </head>
@@ -44,17 +45,18 @@
       <section class="content-panel glass">
         <div class="tabs-head">
           <div class="buy-modes" aria-label="Purchase amount"><button class="mode-btn active" data-mode="1">×1</button><button class="mode-btn" data-mode="10">×10</button><button class="mode-btn" data-mode="max">MAX</button></div>
-          <span class="desktop-label">STAR FACTORY</span>
+          <div class="goal-mini" aria-live="polite"><span id="goal-label">NEXT · Build the first Spark Drone</span><i><b id="goal-fill"></b></i></div>
         </div>
         <div class="tab-panel active" data-panel="forge"><div id="generator-list" class="list"></div></div>
         <div class="tab-panel" data-panel="contracts"><div class="section-title"><div><small>SHORT GOALS</small><h2>Contracts</h2></div><p>Claim bursts of currency while the long loop keeps running.</p></div>
+          <article id="daily-reward" class="daily-card"></article><div id="contract-list" class="list"></div>
           <article class="sponsor-card">
             <div class="sponsor-copy"><small>OPTIONAL SPONSOR BOOST</small><strong id="rewarded-title">Watch an ad · ×2 Lumen output</strong><span id="rewarded-status">5 minute boost · voluntary · no reward without completion</span></div>
             <button id="rewarded-ad-btn">WATCH AD</button>
           </article>
           <article id="support-card" class="support-card"><div><small>SUPPORT THE GAME</small><strong>Keep Lumen Loop independent</strong><span>Optional external supporter link. No gameplay purchase is required.</span></div><button id="support-btn" disabled>NOT CONFIGURED</button></article>
-          <article id="daily-reward" class="daily-card"></article><div id="contract-list" class="list"></div><div class="achievement-wrap"><small>ACHIEVEMENTS</small><div id="achievement-list" class="achievement-list"></div></div></div>
-        <div class="tab-panel" data-panel="relics"><div class="section-title"><div><small>PERMANENT POWER</small><h2>Relics</h2></div><p>Spend Stardust without losing the all-time prestige bonus.</p></div><div id="relic-list" class="list"></div><article class="ascend-card"><div><small>PRESTIGE LOOP</small><h3>Reignite the Pocket Star</h3><p id="ascend-copy"></p></div><button id="ascend-btn" disabled>REIGNITE</button></article></div>
+          <div class="achievement-wrap"><small>ACHIEVEMENTS</small><div id="achievement-list" class="achievement-list"></div></div></div>
+        <div class="tab-panel" data-panel="relics"><div class="section-title"><div><small>PERMANENT POWER</small><h2>Relics</h2></div><p>Spend Stardust without losing the all-time prestige bonus.</p></div><article class="ascend-card"><div><small>PRESTIGE LOOP</small><h3>Reignite the Pocket Star</h3><p id="ascend-copy"></p></div><button id="ascend-btn" disabled>REIGNITE</button></article><div id="relic-list" class="list"></div></div>
       </section>
     </section>
 
@@ -76,5 +78,6 @@
     <button id="reset-save" class="danger-btn">Erase local save</button>
   </dialog>
   <script type="module" src="./src/app.js"></script>
+  <script type="module" src="./src/mobile-v3.js"></script>
 </body>
 </html>
