@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="./styles.css" />
   <link rel="stylesheet" href="./monetization.css" />
   <link rel="stylesheet" href="./mobile-v3.css" />
+  <link rel="stylesheet" href="./liveops.css" />
   <script src="./config.js"></script>
   <title>Lumen Loop</title>
 </head>
@@ -57,6 +58,19 @@
           <article id="support-card" class="support-card"><div><small>SUPPORT THE GAME</small><strong>Keep Lumen Loop independent</strong><span>Optional external supporter link. No gameplay purchase is required.</span></div><button id="support-btn" disabled>NOT CONFIGURED</button></article>
           <div class="achievement-wrap"><small>ACHIEVEMENTS</small><div id="achievement-list" class="achievement-list"></div></div></div>
         <div class="tab-panel" data-panel="relics"><div class="section-title"><div><small>PERMANENT POWER</small><h2>Relics</h2></div><p>Spend Stardust without losing the all-time prestige bonus.</p></div><article class="ascend-card"><div><small>PRESTIGE LOOP</small><h3>Reignite the Pocket Star</h3><p id="ascend-copy"></p></div><button id="ascend-btn" disabled>REIGNITE</button></article><div id="relic-list" class="list"></div></div>
+        <div class="tab-panel" data-panel="live">
+          <div class="live-overview">
+            <div><small>LIVE SERVICE</small><h2>Star Atlas Operations</h2><p id="live-purpose">Build today. Collect forever.</p></div>
+            <div class="atlas-meter"><b id="atlas-percent">0%</b><span>ATLAS</span></div>
+          </div>
+          <article id="live-announcement" class="live-card announcement-card"></article>
+          <section class="live-section"><div class="live-section-head"><div><small>DAILY OPS</small><strong>Three short reasons to return</strong></div><span id="daily-reset">TODAY</span></div><div id="daily-mission-list" class="daily-mission-list"></div></section>
+          <section class="live-section"><div class="live-section-head"><div><small>WEEKLY EVENT</small><strong id="event-name">Comet Surge</strong></div><span id="event-time">7d</span></div><article id="event-card" class="live-card event-card"></article></section>
+          <section class="live-section"><div class="live-section-head"><div><small>CONSTELLATION SEASON</small><strong id="season-name">Season</strong></div><span id="season-time">30d</span></div><article id="season-card" class="live-card season-card"></article></section>
+          <section class="live-section"><div class="live-section-head"><div><small>CORE COLLECTION</small><strong>Spend Star Tokens on permanent looks</strong></div><span id="star-token-count">0 ★</span></div><div id="skin-list" class="skin-list"></div></section>
+          <section class="live-section"><div class="live-section-head"><div><small>STAR ATLAS</small><strong id="atlas-summary">0 / 0 discoveries</strong></div><span>PERMANENT</span></div><div id="atlas-list" class="atlas-list"></div></section>
+          <article id="service-profile" class="live-card service-profile"></article>
+        </div>
       </section>
     </section>
 
@@ -64,9 +78,15 @@
       <button class="nav-btn active" data-tab="forge"><span>⬡</span>FORGE</button>
       <button class="nav-btn" data-tab="contracts"><span>✓</span>CONTRACTS</button>
       <button class="nav-btn" data-tab="relics"><span>✧</span>RELICS</button>
+      <button class="nav-btn" data-tab="live"><span>★</span>LIVE</button>
     </nav>
   </main>
 
+  <dialog id="onboarding" class="onboarding-dialog">
+    <div class="onboarding-mark">✦</div><small>WELCOME, PILOT</small><h2>Build a pocket star.<br>Complete a universe.</h2>
+    <div class="onboarding-steps"><div><b>1</b><span><strong>Tap & automate</strong>Turn taps into machines, then let the orbit work for you.</span></div><div><b>2</b><span><strong>Return with a purpose</strong>Daily Ops, weekly events and monthly Seasons always give you a next objective.</span></div><div><b>3</b><span><strong>Reignite & collect</strong>Prestige makes every new run faster. Star Tokens unlock permanent Core Skins and fill your Atlas.</span></div></div>
+    <button id="onboarding-start">START BUILDING</button><p>No forced account. Local save works offline; cloud service can be connected later.</p>
+  </dialog>
   <dialog id="settings" class="settings-dialog">
     <div class="dialog-head"><div><small>LOCAL SETTINGS</small><h2>Settings</h2></div><button id="settings-close" class="icon-btn">✕</button></div>
     <label><span>Sound effects</span><input id="setting-sound" type="checkbox" /></label>

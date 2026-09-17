@@ -32,7 +32,7 @@ npm run smoke
 - procedural sound + optional haptics
 - PWA manifest and offline cache
 - original SVG game icon/core asset
-- economy tests and three documented review cycles
+- economy tests and two documented review cycles
 
 See `docs/benchmark-analysis.md`, `docs/design.md`, `docs/mobile-retention-redesign.md`, `docs/review-cycle-1.md`, `docs/review-cycle-2.md`, `docs/review-cycle-3.md`.
 
@@ -46,3 +46,13 @@ See `docs/benchmark-analysis.md`, `docs/design.md`, `docs/mobile-retention-redes
 - optional external supporter link
 
 Production credentials live in `config.js`; it ships in `mock` mode so development never generates real ad traffic. See `docs/monetization.md`.
+
+## Live service layer
+The current build is designed around a real service goal: **build today, complete a universe over time**. It includes 3 rotating Daily Ops, a weekly Comet Surge, a monthly Constellation Season, permanent Star Tokens/Core Skins, Star Atlas completion, first-run onboarding, remote/cached live-ops configuration, and an optional authenticated cloud-save adapter.
+
+Operator/product docs:
+- `docs/service-product-strategy.md`
+- `docs/liveops-operator-guide.md`
+- `docs/backend-contract.md`
+
+`liveops.json` works as the zero-backend default. For production, set `LUMEN_CONFIG.liveOps.configUrl` to a remotely managed JSON/Remote Config bridge and `LUMEN_CONFIG.service.apiBase` to an authenticated backend.

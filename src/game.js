@@ -1,4 +1,4 @@
-export const VERSION = 2;
+export const VERSION = 3;
 export const SAVE_KEY = 'lumen-loop-save-v1';
 export const REWARDED_DAILY_LIMIT = 4;
 export const REWARDED_COOLDOWN_MS = 60_000;
@@ -61,6 +61,17 @@ export function createDefaultState(now = Date.now()) {
     cometReadyAt: now + 18000,
     lastSeenAt: now,
     settings: { sound: true, motion: true, haptics: true, analytics: false },
+    stats: {
+      sessions: 0, activeSeconds: 0, generatorsBuilt: 0, cometsCaught: 0, pulsesUsed: 0,
+      contractsClaimed: 0, dailyClaims: 0, rewardedAdsCompleted: 0
+    },
+    service: {
+      dayKey: '', dailyBaseline: {}, dailyMissionIds: [], dailyMissionClaimed: [],
+      seasonId: '', seasonXp: 0, seasonClaimedLevels: [],
+      eventId: '', eventPoints: 0, eventClaimedMilestones: [],
+      starTokens: 0, unlockedSkins: ['dawn'], equippedSkin: 'dawn',
+      lastConfigSyncAt: 0, inboxSeen: []
+    },
     monetization: {
       rewardedBoostUntil: 0,
       rewardedAdsDate: null,
@@ -83,6 +94,15 @@ export function normalizeState(raw, now = Date.now()) {
   state.relics = { ...base.relics, ...(raw.relics || {}) };
   state.settings = { ...base.settings, ...(raw.settings || {}) };
   state.monetization = { ...base.monetization, ...(raw.monetization || {}) };
+  state.stats = { ...base.stats, ...(raw.stats || {}) };
+  state.service = { ...base.service, ...(raw.service || {}) };
+  state.service.dailyBaseline = { ...(raw.service?.dailyBaseline || {}) };
+  state.service.dailyMissionIds = Array.isArray(raw.service?.dailyMissionIds) ? raw.service.dailyMissionIds : [];
+  state.service.dailyMissionClaimed = Array.isArray(raw.service?.dailyMissionClaimed) ? raw.service.dailyMissionClaimed : [];
+  state.service.seasonClaimedLevels = Array.isArray(raw.service?.seasonClaimedLevels) ? raw.service.seasonClaimedLevels : [];
+  state.service.eventClaimedMilestones = Array.isArray(raw.service?.eventClaimedMilestones) ? raw.service.eventClaimedMilestones : [];
+  state.service.unlockedSkins = Array.isArray(raw.service?.unlockedSkins) && raw.service.unlockedSkins.length ? raw.service.unlockedSkins : ['dawn'];
+  state.service.inboxSeen = Array.isArray(raw.service?.inboxSeen) ? raw.service.inboxSeen : [];
   state.claimedContracts = Array.isArray(raw.claimedContracts) ? raw.claimedContracts : [];
   state.achievements = Array.isArray(raw.achievements) ? raw.achievements : [];
   return state;
@@ -163,6 +183,7 @@ export function registerTap(state, now = Date.now()) {
   next.combo = Math.min(5, combo);
   next.bestCombo = Math.max(next.bestCombo || 1, next.combo);
   next.taps = (next.taps || 0) + 1;
+  next.stats = { ...next.stats, tapsAllTime: (next.stats?.tapsAllTime || 0) + 1 };
   next.lumens += value;
   next.lifetimeLumens += value;
   next.totalLumensAllTime += value;
@@ -178,6 +199,7 @@ export function decayCombo(state, dt) {
 
 export function tick(state, dt, now = Date.now()) {
   const next = decayCombo(state, dt);
+  next.stats = { ...next.stats, activeSeconds: (next.stats?.activeSeconds || 0) + dt };
   const earned = passiveRate(next, now) * dt;
   next.lumens += earned;
   next.lifetimeLumens += earned;
@@ -206,6 +228,7 @@ export function buyGenerator(state, generatorId, mode = 1) {
   const next = { ...state, generators: { ...state.generators } };
   next.lumens -= spent;
   next.generators[g.id] = owned + amount;
+  next.stats = { ...next.stats, generatorsBuilt: (next.stats?.generatorsBuilt || 0) + amount };
   return { state: next, bought: amount, spent };
 }
 
@@ -220,6 +243,7 @@ export function claimContract(state, id) {
   if (contractProgress(state, contract) < contract.target) return { state, reward: 0 };
   const reward = contract.reward * relicMultiplier(state, 'contract');
   const next = { ...state, claimedContracts: [...state.claimedContracts, id] };
+  next.stats = { ...next.stats, contractsClaimed: (next.stats?.contractsClaimed || 0) + 1 };
   next.lumens += reward;
   next.lifetimeLumens += reward;
   next.totalLumensAllTime += reward;
@@ -248,6 +272,8 @@ export function ascend(state, now = Date.now()) {
   fresh.monetization = { ...fresh.monetization, ...state.monetization };
   fresh.achievements = [...new Set([...(state.achievements || []), 'ascend'])];
   fresh.totalLumensAllTime = state.totalLumensAllTime || 0;
+  fresh.stats = { ...state.stats };
+  fresh.service = { ...state.service, dailyBaseline: { ...(state.service?.dailyBaseline || {}) }, dailyMissionIds: [...(state.service?.dailyMissionIds || [])], dailyMissionClaimed: [...(state.service?.dailyMissionClaimed || [])], seasonClaimedLevels: [...(state.service?.seasonClaimedLevels || [])], eventClaimedMilestones: [...(state.service?.eventClaimedMilestones || [])], unlockedSkins: [...(state.service?.unlockedSkins || ['dawn'])], inboxSeen: [...(state.service?.inboxSeen || [])] };
   return { state: fresh, gain };
 }
 
@@ -269,7 +295,7 @@ export function buyRelic(state, relicId) {
 export function activatePulse(state, now = Date.now()) {
   if ((state.pulseReadyAt || 0) > now) return { state, activated: false };
   return {
-    state: { ...state, pulseUntil: now + 10000, pulseReadyAt: now + 45000 },
+    state: { ...state, stats: { ...state.stats, pulsesUsed: (state.stats?.pulsesUsed || 0) + 1 }, pulseUntil: now + 10000, pulseReadyAt: now + 45000 },
     activated: true
   };
 }
@@ -277,6 +303,7 @@ export function activatePulse(state, now = Date.now()) {
 export function cometReward(state, now = Date.now()) {
   const reward = Math.max(50, passiveRate(state, now) * 20 + tapValue(state, now) * 10) * relicMultiplier(state, 'comet');
   const next = { ...state };
+  next.stats = { ...next.stats, cometsCaught: (next.stats?.cometsCaught || 0) + 1 };
   next.lumens += reward;
   next.lifetimeLumens += reward;
   next.totalLumensAllTime += reward;
@@ -329,6 +356,7 @@ export function claimDaily(state, now = Date.now()) {
   const status = dailyStatus(state, now);
   if (!status.canClaim) return { state, reward: 0, streak: state.dailyStreak || 0 };
   const next = { ...state, dailyClaimDate: status.today, dailyStreak: status.nextStreak };
+  next.stats = { ...next.stats, dailyClaims: (next.stats?.dailyClaims || 0) + 1 };
   next.lumens += status.reward;
   next.lifetimeLumens += status.reward;
   next.totalLumensAllTime += status.reward;
@@ -368,6 +396,7 @@ export function grantRewardedBoost(state, now = Date.now()) {
       lastRewardedAt: now
     }
   };
+  next.stats = { ...next.stats, rewardedAdsCompleted: (next.stats?.rewardedAdsCompleted || 0) + 1 };
   return { state: next, granted: true, status: rewardedAdStatus(next, now), boostAddedMs: rewardedBoostUntil - currentUntil };
 }
 

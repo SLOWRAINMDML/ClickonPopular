@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "announcement": {
+    "id": "star-atlas-launch",
+    "title": "Star Atlas service is live",
+    "body": "Complete Daily Ops, climb the weekly Comet Surge and collect Core Skins through each Constellation Season."
+  },
+  "daily": { "missionCount": 3, "xpPerMission": 40, "lumenSeconds": 75 },
+  "season": { "xpPerLevel": 100, "maxLevel": 20 },
+  "event": {
+    "name": "Comet Surge",
+    "milestones": [50,150,350,700,1200],
+    "tokenRewards": [1,1,2,2,4]
+  },
+  "tuning": {
+    "eventTapEvery": 25,
+    "eventTapPoints": 2,
+    "eventGeneratorPoint": 1,
+    "eventPulsePoints": 5,
+    "eventCometPoints": 25,
+    "eventContractPoints": 12,
+    "eventMissionPoints": 15
+  }
+}

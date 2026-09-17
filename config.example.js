@@ -11,6 +11,12 @@ window.LUMEN_CONFIG = {
     gaMeasurementId: '', // G-XXXXXXXXXX. Remote analytics only loads after player opt-in.
     customEndpoint: '' // optional HTTPS endpoint receiving JSON event batches
   },
+  liveOps: {
+    configUrl: './liveops.json' // point this at a CDN/Remote Config bridge to tune events without a client release
+  },
+  service: {
+    apiBase: '' // optional authenticated backend. Expected endpoints: /v1/save and /v1/leaderboard/:board
+  },
   support: {
     url: '' // optional Ko-fi / Buy Me a Coffee / storefront URL
   }
