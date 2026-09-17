@@ -21,4 +21,6 @@ if (html.includes('src/mobile-v3.js')) throw new Error('legacy mobile-v3 runtime
 if (app.includes('new MutationObserver')) throw new Error('self-triggering MutationObserver regression');
 if (app.includes("setInterval(() => { state = ensureServiceState(state, liveOpsConfig); renderGenerators();")) throw new Error('periodic full-panel rebuild regression');
 if (!app.includes('nowPerf - lastHudRender >= 100')) throw new Error('HUD DOM updates must be frame-rate capped');
-if (!sw.includes('lumen-loop-v5')) throw new Error('service worker cache version must be v5');
+if (!sw.includes('lumen-loop-v6')) throw new Error('service worker cache version must be v6');
+if (!sw.includes('engagement.css') || !sw.includes('src/engagement.js')) throw new Error('engagement hook assets missing from offline cache');
+if (!html.includes('hook-strip') || !html.includes('engagement-hub')) throw new Error('engagement hook surfaces missing');
