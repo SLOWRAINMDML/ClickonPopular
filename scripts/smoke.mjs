@@ -10,7 +10,15 @@ if(!html.includes('data-panel="live"') || !html.includes('daily-mission-list') |
 if(!html.includes('data-tab="live"')) throw new Error('live service navigation missing');
 
 const css=(await readFile(new URL('../styles.css',import.meta.url),'utf8'))+(await readFile(new URL('../mobile-v3.css',import.meta.url),'utf8'));
+const app=await readFile(new URL('../src/app.js',import.meta.url),'utf8');
+const sw=await readFile(new URL('../service-worker.js',import.meta.url),'utf8');
 if(!html.includes('goal-mini')) throw new Error('visible next-goal cue missing');
 if(!css.includes('height:100dvh') || !css.includes('overflow:hidden')) throw new Error('mobile fixed-cockpit contract missing');
 if(!css.includes('.tab-panel.active') || !css.includes('overflow-y:auto')) throw new Error('scroll must be isolated to lower tray');
 console.log(`Smoke OK: ${refs.length} local references checked; fixed mobile cockpit + Live hub + goal cue + tray scrolling present.`);
+
+if (html.includes('src/mobile-v3.js')) throw new Error('legacy mobile-v3 runtime must not load');
+if (app.includes('new MutationObserver')) throw new Error('self-triggering MutationObserver regression');
+if (app.includes("setInterval(() => { state = ensureServiceState(state, liveOpsConfig); renderGenerators();")) throw new Error('periodic full-panel rebuild regression');
+if (!app.includes('nowPerf - lastHudRender >= 100')) throw new Error('HUD DOM updates must be frame-rate capped');
+if (!sw.includes('lumen-loop-v5')) throw new Error('service worker cache version must be v5');

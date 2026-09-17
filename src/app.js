@@ -28,6 +28,9 @@ let activeTab = 'forge';
 let offlineShown = false;
 let adPaused = false;
 let rewardedBusy = false;
+let lastHudRender = 0;
+let lastBodyClass = '';
+let lastPulseMarkup = '';
 
 const initialOffline = applyOfflineReward(state);
 state = initialOffline.state;
@@ -318,13 +321,46 @@ function renderHUD(now = Date.now()) {
   $('#owned-count').textContent = totalOwned(state);
   const zone = currentZone(state);
   $('#zone-name').textContent = zone.name;
-  document.body.className = `${zone.className} skin-${state.service?.equippedSkin || 'dawn'}`;
+  const bodyClass = `${zone.className} skin-${state.service?.equippedSkin || 'dawn'}`;
+  if (bodyClass !== lastBodyClass) { document.body.className = bodyClass; lastBodyClass = bodyClass; }
   const cooldown = Math.max(0, state.pulseReadyAt - now);
   const active = state.pulseUntil > now;
-  $('#pulse-btn').disabled = cooldown > 0 && !active;
-  $('#pulse-btn').innerHTML = active ? `PULSE ACTIVE <b>${Math.ceil((state.pulseUntil-now)/1000)}s</b>` : cooldown > 0 ? `PULSE <b>${Math.ceil(cooldown/1000)}s</b>` : 'PULSE <b>×4 / 10s</b>';
+  const pulseBtn = $('#pulse-btn');
+  pulseBtn.disabled = cooldown > 0 && !active;
+  const pulseMarkup = active ? `PULSE ACTIVE <b>${Math.ceil((state.pulseUntil-now)/1000)}s</b>` : cooldown > 0 ? `PULSE <b>${Math.ceil(cooldown/1000)}s</b>` : 'PULSE <b>×4 / 10s</b>';
+  if (pulseMarkup !== lastPulseMarkup) { pulseBtn.innerHTML = pulseMarkup; lastPulseMarkup = pulseMarkup; }
   renderComet(now);
   renderGoal();
+}
+
+function refreshGeneratorAffordability() {
+  if (activeTab !== 'forge') return;
+  for (const g of GENERATORS) {
+    const card = $(`.generator-card[data-id="${g.id}"]`);
+    const btn = card?.querySelector('.buy-btn');
+    if (!btn) continue;
+    const quote = buyCost(g);
+    const disabled = quote.amount < 1 || quote.cost > state.lumens;
+    if (btn.disabled !== disabled) btn.disabled = disabled;
+    const cost = btn.querySelector('b');
+    const expected = `${fmt(quote.cost)} ✦`;
+    if (cost && cost.textContent !== expected) cost.textContent = expected;
+    if (state.buyMode === 'max') {
+      const label = btn.querySelector('span');
+      const expectedLabel = `BUY MAX (${quote.amount})`;
+      if (label && label.textContent !== expectedLabel) label.textContent = expectedLabel;
+    }
+  }
+}
+
+function refreshLiveClocks(now = Date.now()) {
+  if (activeTab !== 'live') return;
+  const event = eventStatus(state, liveOpsConfig, now);
+  const season = seasonStatus(state, liveOpsConfig, now);
+  const eventTime = $('#event-time');
+  const seasonTime = $('#season-time');
+  if (eventTime) eventTime.textContent = timeRemaining(event.end, now);
+  if (seasonTime) seasonTime.textContent = timeRemaining(season.end, now);
 }
 
 function renderAll() {
@@ -485,12 +521,21 @@ function frame(nowPerf) {
   const result = tick(state, dt); state = updateAchievements(result.state);
   saveTimer += dt;
   if (saveTimer > 5) { save(); saveTimer = 0; }
-  renderHUD(Date.now());
+  // Simulation may run at display rate, but DOM work is capped at 10 Hz.
+  if (nowPerf - lastHudRender >= 100) { renderHUD(Date.now()); lastHudRender = nowPerf; }
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
 
-setInterval(() => { state = ensureServiceState(state, liveOpsConfig); renderGenerators(); renderContracts(); renderRelics(); renderLive(); renderOrbit(); renderMonetization(); renderNavBadges(); refreshTelemetrySummary(); }, 1000);
+// Passive income only changes affordability and clocks. Never rebuild scrollable panels on a timer.
+setInterval(() => {
+  state = ensureServiceState(state, liveOpsConfig);
+  refreshGeneratorAffordability();
+  refreshLiveClocks();
+  if (activeTab === 'contracts') renderMonetization();
+  renderNavBadges();
+  refreshTelemetrySummary();
+}, 1000);
 window.addEventListener('pagehide', save);
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) { save(); return; }
