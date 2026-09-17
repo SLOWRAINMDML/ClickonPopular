@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#171331" />
+  <meta name="description" content="Lumen Loop — a mobile-first pocket star idle clicker." />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" href="./assets/icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="./styles.css" />
+  <title>Lumen Loop</title>
+</head>
+<body class="zone-dawn">
+  <div class="ambient a1"></div><div class="ambient a2"></div><div class="ambient a3"></div>
+  <div id="fx-layer" aria-hidden="true"></div><div id="toasts" aria-live="polite"></div>
+  <main class="app-shell">
+    <header class="topbar">
+      <div class="brand"><img src="./assets/icon.svg" alt="" /><div><b>LUMEN LOOP</b><small>POCKET STAR FACTORY</small></div></div>
+      <div class="stats">
+        <div><span>✦</span><b id="lumen-count">0</b><small id="rate-count">0/s</small></div>
+        <div><span>✧</span><b id="stardust-count">0</b><small>STARDUST</small></div>
+      </div>
+      <button id="settings-btn" class="icon-btn" aria-label="Settings">⚙</button>
+    </header>
+
+    <section class="game-grid">
+      <section class="hero-panel glass">
+        <div class="hero-meta"><span id="zone-name">Dawn Pocket</span><span><b id="owned-count">0</b> machines in orbit</span></div>
+        <div class="core-stage">
+          <div class="orbit orbit-a"><div id="orbiters"></div></div><div class="orbit orbit-b"></div>
+          <button id="core-button" class="core-button" aria-label="Tap the Lumen Core">
+            <img src="./assets/lumen-core.svg" alt="Glowing Lumen Core" draggable="false" />
+          </button>
+          <button id="comet" class="comet" aria-label="Catch the lucky comet"><span>☄</span><b>LUCKY COMET</b></button>
+        </div>
+        <div class="tap-readout"><strong id="tap-value">+1 per tap</strong><span>KEEP THE CORE HOT</span></div>
+        <div class="combo-row"><span>COMBO <b id="combo-label">×1</b></span><div class="combo-track"><i id="combo-fill"></i></div></div>
+        <button id="pulse-btn" class="pulse-btn">PULSE <b>×4 / 10s</b></button>
+        <p class="hero-hint">Fast taps raise combo. Machines earn while you are away. Reignite the star to unlock permanent relic power.</p>
+      </section>
+
+      <section class="content-panel glass">
+        <div class="tabs-head">
+          <div class="buy-modes" aria-label="Purchase amount"><button class="mode-btn active" data-mode="1">×1</button><button class="mode-btn" data-mode="10">×10</button><button class="mode-btn" data-mode="max">MAX</button></div>
+          <span class="desktop-label">STAR FACTORY</span>
+        </div>
+        <div class="tab-panel active" data-panel="forge"><div id="generator-list" class="list"></div></div>
+        <div class="tab-panel" data-panel="contracts"><div class="section-title"><div><small>SHORT GOALS</small><h2>Contracts</h2></div><p>Claim bursts of currency while the long loop keeps running.</p></div><article id="daily-reward" class="daily-card"></article><div id="contract-list" class="list"></div><div class="achievement-wrap"><small>ACHIEVEMENTS</small><div id="achievement-list" class="achievement-list"></div></div></div>
+        <div class="tab-panel" data-panel="relics"><div class="section-title"><div><small>PERMANENT POWER</small><h2>Relics</h2></div><p>Spend Stardust without losing the all-time prestige bonus.</p></div><div id="relic-list" class="list"></div><article class="ascend-card"><div><small>PRESTIGE LOOP</small><h3>Reignite the Pocket Star</h3><p id="ascend-copy"></p></div><button id="ascend-btn" disabled>REIGNITE</button></article></div>
+      </section>
+    </section>
+
+    <nav class="bottom-nav glass" aria-label="Game sections">
+      <button class="nav-btn active" data-tab="forge"><span>⬡</span>FORGE</button>
+      <button class="nav-btn" data-tab="contracts"><span>✓</span>CONTRACTS</button>
+      <button class="nav-btn" data-tab="relics"><span>✧</span>RELICS</button>
+    </nav>
+  </main>
+
+  <dialog id="settings" class="settings-dialog">
+    <div class="dialog-head"><div><small>LOCAL SETTINGS</small><h2>Settings</h2></div><button id="settings-close" class="icon-btn">✕</button></div>
+    <label><span>Sound effects</span><input id="setting-sound" type="checkbox" /></label>
+    <label><span>Motion effects</span><input id="setting-motion" type="checkbox" /></label>
+    <label><span>Haptics</span><input id="setting-haptics" type="checkbox" /></label>
+    <p>Your progress is stored only in this browser.</p>
+    <button id="reset-save" class="danger-btn">Erase local save</button>
+  </dialog>
+  <script type="module" src="./src/app.js"></script>
+</body>
+</html>

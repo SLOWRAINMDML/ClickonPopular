@@ -1,0 +1,10 @@
+{
+  "name": "Lumen Loop: Pocket Star Factory",
+  "short_name": "Lumen Loop",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0d0a22",
+  "theme_color": "#171331",
+  "description": "A mobile-first idle clicker about growing a pocket star factory.",
+  "icons": [{"src":"./assets/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]
+}
