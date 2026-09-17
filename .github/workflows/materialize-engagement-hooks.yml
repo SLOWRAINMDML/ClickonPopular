@@ -34,3 +34,4 @@ jobs:
           git add -A
           git commit -m "feat: activate multi-loop engagement system"
           git push origin engagement-hooks-v2
+# rerun after v6 smoke update
