@@ -10,6 +10,7 @@ import { showRewarded, showInterstitial, adProviderStatus } from './monetization
 import { initTelemetry, setAnalyticsConsent, track, telemetrySummary, exportTelemetry, clearTelemetry } from './telemetry.js';
 import { DEFAULT_LIVEOPS, CORE_SKINS, ensureServiceState, dailyMissions, claimServiceMission, seasonStatus, claimSeasonRewards, eventStatus, claimEventRewards, addEventPoints, unlockSkin, equipSkin, atlasSummary, timeRemaining } from './liveops.js';
 import { fetchLiveOps, serviceProfile, cloudCapability, syncCloudSave } from './service-client.js';
+import { ensureHooksState, prepareReturn, launchStatus, claimLaunchReward, addMomentum, breakthroughStatus, claimBreakthrough, comebackStatus, claimComeback, rhythmStatus, claimRhythm, capsuleStatus, openSignalCapsule, signalCollection, doctrineStatus, chooseDoctrine, storyLog, hookStripModel, readyHookCount, experimentVariant, dueSessionMilestones, markSessionMilestone } from './engagement.js';
 
 const $ = (q, el = document) => el.querySelector(q);
 const $$ = (q, el = document) => [...el.querySelectorAll(q)];
@@ -20,7 +21,9 @@ function load() {
 }
 let liveOpsConfig = DEFAULT_LIVEOPS;
 let liveOpsSource = 'default';
-let state = ensureServiceState(load(), liveOpsConfig);
+let state = ensureHooksState(ensureServiceState(load(), liveOpsConfig), Date.now(), serviceProfile().pilotId);
+const initialAwayMs = Math.max(0, Date.now() - (state.lastSeenAt || Date.now()));
+state = prepareReturn(state, initialAwayMs, Date.now(), serviceProfile().pilotId);
 state.stats = { ...state.stats, sessions: (state.stats?.sessions || 0) + 1 };
 let lastFrame = performance.now();
 let saveTimer = 0;
@@ -31,12 +34,14 @@ let rewardedBusy = false;
 let lastHudRender = 0;
 let lastBodyClass = '';
 let lastPulseMarkup = '';
+const hookExposureSeen = new Set();
 
 const initialOffline = applyOfflineReward(state);
 state = initialOffline.state;
 if (initialOffline.reward > 1) offlineShown = true;
 initTelemetry(state.settings.analytics);
 track('game_loaded', { version: state.version, offlineReward: Math.round(initialOffline.reward) });
+track('hook_variant_assigned', { variant: experimentVariant(state) });
 
 function save() {
   state.lastSeenAt = Date.now();
@@ -63,6 +68,14 @@ function toast(text, kind = '') {
   $('#toasts').append(el);
   requestAnimationFrame(() => el.classList.add('show'));
   setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 250); }, 1600);
+}
+
+function showEngagementReveal(card, duplicate = false) {
+  const root = $('#engagement-reveal');
+  if (!root || !card) return;
+  root.innerHTML = `<div class="big">${card.symbol || '✦'}</div><b>${duplicate ? 'Signal Echo' : card.name}</b><span>${duplicate ? 'Duplicate converted to 1 ★ Star Token' : `${String(card.rarity || '').toUpperCase()} · ${card.bonus || ''}`}</span>`;
+  root.classList.add('show');
+  setTimeout(() => root.classList.remove('show'), 2200);
 }
 
 function burst(x, y, count = 7) {
@@ -267,6 +280,40 @@ function renderLive(now = Date.now()) {
   $('#service-profile').innerHTML = `<div><small>PILOT PROFILE</small><strong>${profile.pilotId.slice(0,18)}</strong><span>${capability.configured ? 'Cloud adapter configured · server validation required for ranked data' : 'Local-first save · add service.apiBase for authenticated cloud sync'}</span></div><button id="sync-cloud" ${capability.configured?'':'disabled'}>${capability.configured?'SYNC':'LOCAL'}</button>`;
 }
 
+function renderEngagement(now = Date.now()) {
+  state = ensureHooksState(state, now, serviceProfile().pilotId);
+  const variant = experimentVariant(state);
+  const model = hookStripModel(state, variant);
+  const strip = $('#hook-strip');
+  if (strip) {
+    const progress = model.progress == null ? '' : `<div class="hook-progress"><i style="width:${Math.max(3, Math.min(100, model.progress * 100))}%"></i></div>`;
+    const action = model.kind === 'launch' ? `data-hook-action="launch" data-hook-id="${model.id}"` : `data-hook-action="${model.kind}"`;
+    strip.innerHTML = `<div><small>${model.eyebrow}</small><strong>${model.title}</strong><p>${model.detail}</p></div><button ${action} ${model.ready ? '' : 'disabled'}>${model.cta}</button>${progress}`;
+    const key = `${variant}:${model.kind}:${model.id || ''}`;
+    if (!hookExposureSeen.has(key)) {
+      hookExposureSeen.add(key);
+      track('hook_exposure', { hook:model.kind, variant, id:model.id || '' });
+    }
+  }
+
+  const host = $('#engagement-hub');
+  if (!host) return;
+  const rhythm = rhythmStatus(state);
+  const capsule = capsuleStatus(state);
+  const doctrine = doctrineStatus(state);
+  const signals = signalCollection(state);
+  const stories = storyLog(state, atlasSummary(state).percent);
+  const burst = breakthroughStatus(state, now);
+  const rhythmDots = Array.from({ length:5 }, (_, i) => `<i class="${i < Math.min(5, rhythm.count) ? 'on' : ''}">${i < rhythm.count ? '✓' : i + 1}</i>`).join('');
+  host.innerHTML = `
+    <article class="engagement-card"><div class="capsule-head"><div><small>SIGNAL CAPSULES</small><h3>Curiosity without pay-to-roll</h3></div><b class="capsule-count">${capsule.capsules} ◇</b></div><p>Earn capsules through play. Duplicates become ★. Rare+ pity after repeated Commons.</p><button id="capsule-open" ${capsule.capsules ? '' : 'disabled'}>OPEN SIGNAL</button><div class="odds">ODDS · Common 65% · Rare 28% · Epic 7%</div></article>
+    <article class="engagement-card"><div class="rhythm-head"><div><small>ORBIT RHYTHM</small><h3>${rhythm.count}/5 play days</h3></div><span>${rhythm.claimed ? 'CLAIMED' : 'THIS WEEK'}</span></div><p>Five days is enough. Missing a day never resets progress.</p><div class="rhythm-dots">${rhythmDots}</div><button id="rhythm-claim" ${rhythm.ready ? '' : 'disabled'}>${rhythm.claimed ? 'CLAIMED' : 'CLAIM 2 ◇ + 1 ★'}</button></article>
+    <article class="engagement-card wide"><small>REIGNITE DOCTRINE</small><h3>Choose how this life feels</h3><p>${doctrine.available ? 'A new Reignite lets you choose again.' : 'Reignite once to unlock strategic run identity.'}</p><div class="doctrine-grid">${doctrine.doctrines.map(d => `<button class="doctrine ${doctrine.doctrine === d.id ? 'active' : ''}" data-doctrine="${d.id}" ${doctrine.available ? '' : 'disabled'}><b>${d.symbol} ${d.name}</b><span>${d.bonus}</span></button>`).join('')}</div></article>
+    <article class="engagement-card wide"><small>SIGNAL ARCHIVE · ${capsule.owned}/${capsule.total}</small><h3>Collect the strange things the star finds</h3><div class="signal-grid">${signals.map(c => `<div class="signal-card ${c.owned ? '' : 'locked'} ${c.rarity}"><span class="symbol">${c.owned ? c.symbol : '?'}</span><b>${c.owned ? c.name : 'Unknown Signal'}</b><span>${c.owned ? c.bonus : c.rarity.toUpperCase()}</span></div>`).join('')}</div></article>
+    <article class="engagement-card wide"><small>FIELD LOG</small><h3>A story appears behind the numbers</h3><div class="story-list">${stories.map(s => `<div class="story-entry ${s.unlocked ? '' : 'locked'}"><b>${s.unlocked ? s.title : 'Encrypted Log'}</b><span>${s.unlocked ? s.text : 'Keep exploring the pocket star to decrypt this entry.'}</span></div>`).join('')}</div></article>
+    <article class="engagement-card wide"><small>PILOT CARD</small><h3>Share progress, not personal data</h3><p>Atlas ${atlasSummary(state).percent}% · ${state.ascensions || 0} Reignites · ${capsule.owned}/${capsule.total} Signals · ${Math.floor(burst.momentum)} Momentum</p><button class="pilot-share" id="pilot-share">SHARE PILOT CARD</button></article>`;
+}
+
 function renderNavBadges() {
   const contractReady = CONTRACTS.filter(c => !state.claimedContracts.includes(c.id) && contractProgress(state, c) >= c.target).length + (dailyStatus(state).canClaim ? 1 : 0);
   const relicReady = prestigeGain(state) > 0 || RELICS.some(r => state.stardust >= relicCost(state, r.id));
@@ -280,7 +327,7 @@ function renderNavBadges() {
     const eventReady = eventStatus(state, liveOpsConfig).milestones.filter(m => m.ready && !m.claimed).length;
     const season = seasonStatus(state, liveOpsConfig);
     const seasonReady = Array.from({length:season.level},(_,i)=>i+1).some(level => !season.claimedLevels.includes(level)) ? 1 : 0;
-    const ready = missionsReady + eventReady + seasonReady;
+    const ready = missionsReady + eventReady + seasonReady + readyHookCount(state);
     if (ready) liveBtn.dataset.badge = String(Math.min(9,ready)); else delete liveBtn.dataset.badge;
   }
 }
@@ -365,7 +412,7 @@ function refreshLiveClocks(now = Date.now()) {
 
 function renderAll() {
   state = ensureServiceState(state, liveOpsConfig);
-  renderHUD(); renderGenerators(); renderContracts(); renderRelics(); renderLive(); renderOrbit(); renderMonetization(); renderNavBadges();
+  renderHUD(); renderGenerators(); renderContracts(); renderRelics(); renderLive(); renderEngagement(); renderOrbit(); renderMonetization(); renderNavBadges();
   $$('.tab-panel').forEach(p => p.classList.toggle('active', p.dataset.panel === activeTab));
   $('.buy-modes').classList.toggle('hidden', activeTab !== 'forge');
   $$('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === activeTab));
@@ -373,15 +420,51 @@ function renderAll() {
 
 function bindDelegates() {
   document.addEventListener('click', (e) => {
+    const hookAction = e.target.closest('[data-hook-action]');
+    if (hookAction) {
+      const kind = hookAction.dataset.hookAction;
+      track('hook_engage', { hook:kind, variant:experimentVariant(state) });
+      if (kind === 'launch') {
+        const result = claimLaunchReward(state, hookAction.dataset.hookId);
+        if (result.claimed) { state=result.state; track('launch_reward_claim',{step:result.step.id,capsules:result.step.capsules||0}); track('hook_complete',{hook:'launch',id:result.step.id}); toast(`Launch Track · ${result.step.label}`, 'good'); renderAll(); save(); }
+      } else if (kind === 'breakthrough') {
+        const result = claimBreakthrough(state);
+        if (result.claimed) { state=result.state; track('breakthrough_trigger',{boost_seconds:60}); track('hook_complete',{hook:'breakthrough'}); toast('BREAKTHROUGH · ×2 core output + Signal Capsule','good'); renderAll(); save(); }
+      } else if (kind === 'comeback') {
+        const result = claimComeback(state, passiveRate(state));
+        if (result.claimed) { state=result.state; track('comeback_claim',{reward:Math.round(result.reward)}); track('hook_complete',{hook:'comeback'}); toast(`Welcome back · +${fmt(result.reward)} ✦`,'good'); renderAll(); save(); }
+      }
+    }
+    const capsuleOpen = e.target.closest('#capsule-open');
+    if (capsuleOpen) {
+      const result = openSignalCapsule(state);
+      if (result.opened) { state=result.state; track('signal_capsule_open',{rarity:result.card.rarity,duplicate:result.duplicate,pity:result.pity}); track(result.duplicate?'signal_card_duplicate':'signal_card_new',{card:result.card.id,rarity:result.card.rarity}); showEngagementReveal(result.card,result.duplicate); renderAll(); save(); }
+    }
+    const rhythmClaim = e.target.closest('#rhythm-claim');
+    if (rhythmClaim) {
+      const result = claimRhythm(state);
+      if (result.claimed) { state=result.state; track('rhythm_claim',{capsules:result.capsules,star_tokens:result.starTokens}); toast('Orbit Rhythm complete · 2 ◇ + 1 ★','good'); renderAll(); save(); }
+    }
+    const doctrine = e.target.closest('[data-doctrine]');
+    if (doctrine) {
+      const result = chooseDoctrine(state, doctrine.dataset.doctrine);
+      if (result.chosen) { state=result.state; track('doctrine_select',{doctrine:result.doctrine.id}); toast(`${result.doctrine.name} doctrine online`,'good'); renderAll(); save(); }
+    }
+    const share = e.target.closest('#pilot-share');
+    if (share) {
+      const cap=capsuleStatus(state); const atlas=atlasSummary(state); const text=`LUMEN LOOP Pilot · Atlas ${atlas.percent}% · ${state.ascensions||0} Reignites · ${cap.owned}/${cap.total} Signals`;
+      const done=()=>{ track('pilot_card_share',{atlas:atlas.percent,signals:cap.owned,reignites:state.ascensions||0}); toast('Pilot Card shared','good'); };
+      if (navigator.share) navigator.share({title:'Lumen Loop Pilot Card',text,url:location.href}).then(done).catch(()=>{}); else navigator.clipboard?.writeText(`${text} ${location.href}`).then(done).catch(()=>{});
+    }
     const buy = e.target.closest('[data-buy]');
     if (buy) {
       const result = buyGenerator(state, buy.dataset.buy, state.buyMode);
-      if (result.bought) { state = result.state; state = addEventPoints(state, Math.min(10, result.bought) * Number(liveOpsConfig.tuning?.eventGeneratorPoint || 1), liveOpsConfig); track('generator_purchase', { generator: buy.dataset.buy, amount: result.bought, spent: Math.round(result.spent) }); track('spend_virtual_currency', { virtual_currency_name: 'Lumen', value: Math.round(result.spent), item_name: buy.dataset.buy }); sfx('buy', state.settings.sound); haptic(); toast(`Built ×${result.bought}`); renderAll(); save(); }
+      if (result.bought) { state = addMomentum(result.state, Math.min(20, result.bought * 2)); state = addEventPoints(state, Math.min(10, result.bought) * Number(liveOpsConfig.tuning?.eventGeneratorPoint || 1), liveOpsConfig); track('generator_purchase', { generator: buy.dataset.buy, amount: result.bought, spent: Math.round(result.spent) }); track('spend_virtual_currency', { virtual_currency_name: 'Lumen', value: Math.round(result.spent), item_name: buy.dataset.buy }); sfx('buy', state.settings.sound); haptic(); toast(`Built ×${result.bought}`); renderAll(); save(); }
     }
     const claim = e.target.closest('[data-claim]');
     if (claim) {
       const result = claimContract(state, claim.dataset.claim);
-      if (result.reward) { state = result.state; state = addEventPoints(state, Number(liveOpsConfig.tuning?.eventContractPoints || 12), liveOpsConfig); track('contract_claim', { contract: claim.dataset.claim, reward: Math.round(result.reward) }); track('earn_virtual_currency', { virtual_currency_name: 'Lumen', value: Math.round(result.reward), source: 'contract' }); sfx('claim', state.settings.sound); toast(`Contract +${fmt(result.reward)} ✦`, 'good'); renderAll(); save(); }
+      if (result.reward) { state = addMomentum(result.state, 15); state = addEventPoints(state, Number(liveOpsConfig.tuning?.eventContractPoints || 12), liveOpsConfig); track('contract_claim', { contract: claim.dataset.claim, reward: Math.round(result.reward) }); track('earn_virtual_currency', { virtual_currency_name: 'Lumen', value: Math.round(result.reward), source: 'contract' }); sfx('claim', state.settings.sound); toast(`Contract +${fmt(result.reward)} ✦`, 'good'); renderAll(); save(); }
     }
     const relic = e.target.closest('[data-relic]');
     if (relic) {
@@ -437,6 +520,7 @@ $('#core-button').addEventListener('pointerdown', (e) => {
   const y = e.clientY || r.top + r.height/2;
   const result = registerTap(state);
   state = result.state;
+  if ((state.stats?.tapsAllTime || 0) % 5 === 0) state = addMomentum(state, 5);
   const tapEvery = Number(liveOpsConfig.tuning?.eventTapEvery || 25);
   if (tapEvery > 0 && (state.stats?.tapsAllTime || 0) % tapEvery === 0) state = addEventPoints(state, Number(liveOpsConfig.tuning?.eventTapPoints || 2), liveOpsConfig);
   if ([1,100,1000,10000].includes(state.taps)) track('tap_milestone', { taps: state.taps, bestCombo: state.bestCombo });
@@ -447,11 +531,11 @@ $('#core-button').addEventListener('pointerdown', (e) => {
 
 $('#pulse-btn').addEventListener('click', () => {
   const result = activatePulse(state);
-  if (result.activated) { state = addEventPoints(result.state, Number(liveOpsConfig.tuning?.eventPulsePoints || 5), liveOpsConfig); track('pulse_activate'); sfx('pulse', state.settings.sound); haptic(18); toast('Production ×4!', 'good'); renderAll(); save(); }
+  if (result.activated) { state = addMomentum(result.state, 12); state = addEventPoints(state, Number(liveOpsConfig.tuning?.eventPulsePoints || 5), liveOpsConfig); track('pulse_activate'); sfx('pulse', state.settings.sound); haptic(18); toast('Production ×4!', 'good'); renderAll(); save(); }
 });
 
 $('#comet').addEventListener('click', () => {
-  const result = cometReward(state); state = addEventPoints(result.state, Number(liveOpsConfig.tuning?.eventCometPoints || 25), liveOpsConfig); track('comet_claim', { reward: Math.round(result.reward) }); sfx('comet', state.settings.sound); haptic([12,35,12]); toast(`Comet cache +${fmt(result.reward)} ✦`, 'good'); renderAll(); save();
+  const result = cometReward(state); state = addMomentum(result.state, 25); state = addEventPoints(state, Number(liveOpsConfig.tuning?.eventCometPoints || 25), liveOpsConfig); track('comet_claim', { reward: Math.round(result.reward) }); sfx('comet', state.settings.sound); haptic([12,35,12]); toast(`Comet cache +${fmt(result.reward)} ✦`, 'good'); renderAll(); save();
 });
 
 $('#ascend-btn').addEventListener('click', async () => {
@@ -534,13 +618,15 @@ setInterval(() => {
   refreshLiveClocks();
   if (activeTab === 'contracts') renderMonetization();
   renderNavBadges();
+  for (const seconds of dueSessionMilestones(state)) { track('active_time_milestone', { seconds, variant:experimentVariant(state) }); state = markSessionMilestone(state, seconds); }
   refreshTelemetrySummary();
 }, 1000);
 window.addEventListener('pagehide', save);
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) { save(); return; }
+  const awayMs = Math.max(0, Date.now() - (state.lastSeenAt || Date.now()));
   const resumed = applyOfflineReward(state);
-  state = resumed.state;
+  state = prepareReturn(resumed.state, awayMs, Date.now(), serviceProfile().pilotId);
   if (resumed.reward > 1) { toast(`Welcome back! +${fmt(resumed.reward)} ✦`, 'good'); track('offline_reward', { reward: Math.round(resumed.reward) }); }
   renderAll();
 });

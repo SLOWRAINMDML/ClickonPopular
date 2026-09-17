@@ -11,12 +11,13 @@
   <link rel="stylesheet" href="./monetization.css" />
   <link rel="stylesheet" href="./mobile-v3.css" />
   <link rel="stylesheet" href="./liveops.css" />
+  <link rel="stylesheet" href="./engagement.css" />
   <script src="./config.js"></script>
   <title>Lumen Loop</title>
 </head>
 <body class="zone-dawn">
   <div class="ambient a1"></div><div class="ambient a2"></div><div class="ambient a3"></div>
-  <div id="fx-layer" aria-hidden="true"></div><div id="toasts" aria-live="polite"></div>
+  <div id="fx-layer" aria-hidden="true"></div><div id="toasts" aria-live="polite"></div><div id="engagement-reveal" class="engagement-toast-card" aria-live="polite"></div>
   <main class="app-shell">
     <header class="topbar">
       <div class="brand"><img src="./assets/icon.svg" alt="" /><div><b>LUMEN LOOP</b><small>POCKET STAR FACTORY</small></div></div>
@@ -48,6 +49,7 @@
           <div class="buy-modes" aria-label="Purchase amount"><button class="mode-btn active" data-mode="1">×1</button><button class="mode-btn" data-mode="10">×10</button><button class="mode-btn" data-mode="max">MAX</button></div>
           <div class="goal-mini" aria-live="polite"><span id="goal-label">NEXT · Build the first Spark Drone</span><i><b id="goal-fill"></b></i></div>
         </div>
+        <article id="hook-strip" class="hook-strip" aria-live="polite"></article>
         <div class="tab-panel active" data-panel="forge"><div id="generator-list" class="list"></div></div>
         <div class="tab-panel" data-panel="contracts"><div class="section-title"><div><small>SHORT GOALS</small><h2>Contracts</h2></div><p>Claim bursts of currency while the long loop keeps running.</p></div>
           <article id="daily-reward" class="daily-card"></article><div id="contract-list" class="list"></div>
@@ -63,6 +65,7 @@
             <div><small>LIVE SERVICE</small><h2>Star Atlas Operations</h2><p id="live-purpose">Build today. Collect forever.</p></div>
             <div class="atlas-meter"><b id="atlas-percent">0%</b><span>ATLAS</span></div>
           </div>
+          <section id="engagement-hub" class="engagement-grid"></section>
           <article id="live-announcement" class="live-card announcement-card"></article>
           <section class="live-section"><div class="live-section-head"><div><small>DAILY OPS</small><strong>Three short reasons to return</strong></div><span id="daily-reset">TODAY</span></div><div id="daily-mission-list" class="daily-mission-list"></div></section>
           <section class="live-section"><div class="live-section-head"><div><small>WEEKLY EVENT</small><strong id="event-name">Comet Surge</strong></div><span id="event-time">7d</span></div><article id="event-card" class="live-card event-card"></article></section>

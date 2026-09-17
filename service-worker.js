@@ -1,5 +1,5 @@
-const CACHE='lumen-loop-v5';
-const ASSETS=['./','./index.html','./styles.css','./monetization.css','./mobile-v3.css','./liveops.css','./config.js','./liveops.json','./src/app.js','./src/game.js','./src/audio.js','./src/monetization.js','./src/telemetry.js','./src/liveops.js','./src/service-client.js','./assets/icon.svg','./assets/lumen-core.svg','./manifest.webmanifest'];
+const CACHE='lumen-loop-v6';
+const ASSETS=['./','./index.html','./styles.css','./monetization.css','./mobile-v3.css','./liveops.css','./engagement.css','./config.js','./liveops.json','./src/app.js','./src/game.js','./src/audio.js','./src/monetization.js','./src/telemetry.js','./src/liveops.js','./src/service-client.js','./src/engagement.js','./assets/icon.svg','./assets/lumen-core.svg','./manifest.webmanifest'];
 self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)));});
 self.addEventListener('activate',e=>e.waitUntil(Promise.all([caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))),self.clients.claim()] )));
 self.addEventListener('fetch',e=>{

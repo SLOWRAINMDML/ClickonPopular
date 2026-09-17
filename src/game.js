@@ -161,17 +161,48 @@ export function adBoostMultiplier(state, now = Date.now()) {
   return (state.monetization?.rewardedBoostUntil || 0) > now ? 2 : 1;
 }
 
+function engagementMultiplier(state, kind, now = Date.now()) {
+  const hooks = state.service?.hooks || {};
+  const cards = new Set(hooks.signalCards || []);
+  let mult = 1;
+  if (kind === 'passive') {
+    if (hooks.doctrine === 'architect') mult *= 1.25;
+    if (cards.has('emberMap')) mult *= 1.04;
+    if (cards.has('prismHeart')) mult *= 1.07;
+    if (cards.has('auroraKey')) mult *= 1.05;
+    if (cards.has('blackStar')) mult *= 1.08;
+  }
+  if (kind === 'tap') {
+    if (hooks.doctrine === 'resonant') mult *= 1.35;
+    if (cards.has('echoCoil')) mult *= 1.06;
+    if (cards.has('auroraKey')) mult *= 1.05;
+    if (cards.has('blackStar')) mult *= 1.08;
+  }
+  if (kind === 'comet') {
+    if (hooks.doctrine === 'surveyor') mult *= 1.40;
+    if (cards.has('cometThread')) mult *= 1.08;
+    if (cards.has('blackStar')) mult *= 1.08;
+  }
+  if (kind === 'offline') {
+    if (hooks.doctrine === 'surveyor') mult *= 1.15;
+    if (cards.has('hourglassSeed')) mult *= 1.10;
+    if (cards.has('quietOrbit')) mult *= 1.15;
+  }
+  if ((kind === 'passive' || kind === 'tap') && Number(hooks.overdriveUntil || 0) > now) mult *= 2;
+  return mult;
+}
+
 export function passiveRate(state, now = Date.now()) {
   const base = GENERATORS.reduce((sum, g) => {
     const owned = state.generators[g.id] || 0;
     return sum + owned * g.baseRate * milestoneMultiplier(owned);
   }, 0);
-  return base * prestigeMultiplier(state) * relicMultiplier(state, 'passive') * pulseMultiplier(state, now) * adBoostMultiplier(state, now);
+  return base * prestigeMultiplier(state) * relicMultiplier(state, 'passive') * pulseMultiplier(state, now) * adBoostMultiplier(state, now) * engagementMultiplier(state, 'passive', now);
 }
 
 export function tapValue(state, now = Date.now()) {
   const combo = Math.max(1, Math.min(5, state.combo || 1));
-  return prestigeMultiplier(state) * relicMultiplier(state, 'tap') * combo * pulseMultiplier(state, now) * adBoostMultiplier(state, now);
+  return prestigeMultiplier(state) * relicMultiplier(state, 'tap') * combo * pulseMultiplier(state, now) * adBoostMultiplier(state, now) * engagementMultiplier(state, 'tap', now);
 }
 
 export function registerTap(state, now = Date.now()) {
@@ -301,7 +332,7 @@ export function activatePulse(state, now = Date.now()) {
 }
 
 export function cometReward(state, now = Date.now()) {
-  const reward = Math.max(50, passiveRate(state, now) * 20 + tapValue(state, now) * 10) * relicMultiplier(state, 'comet');
+  const reward = Math.max(50, passiveRate(state, now) * 20 + tapValue(state, now) * 10) * relicMultiplier(state, 'comet') * engagementMultiplier(state, 'comet', now);
   const next = { ...state };
   next.stats = { ...next.stats, cometsCaught: (next.stats?.cometsCaught || 0) + 1 };
   next.lumens += reward;
@@ -314,7 +345,7 @@ export function cometReward(state, now = Date.now()) {
 export function offlineReward(state, now = Date.now()) {
   const elapsed = Math.max(0, Math.min(8 * 3600, (now - (state.lastSeenAt ?? now)) / 1000));
   const rate = passiveRate({ ...state, pulseUntil: 0, monetization: { ...state.monetization, rewardedBoostUntil: 0 } }, now);
-  return rate * elapsed * relicMultiplier(state, 'offline');
+  return rate * elapsed * relicMultiplier(state, 'offline') * engagementMultiplier(state, 'offline', now);
 }
 
 export function applyOfflineReward(state, now = Date.now()) {
